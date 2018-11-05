@@ -92,5 +92,9 @@ public class UDPFrame {
     }
     return "";
   }
+  
+  public void setAllData(byte[] data) {
+    this.allData = data;
+  }
 
 }

@@ -37,7 +37,7 @@ public class SendWindow {
     }
 
     base = (base + n) % seq;
-    nextseqnum -= n;
+    this.nextseqnum = this.nextseqnum-1;
   }
 
   /**
@@ -88,7 +88,11 @@ public class SendWindow {
   }
 
   public int getNextseqnum() {
-    return (this.base + this.nextseqnum) % seq;
+    return this.nextseqnum;
+  }
+  
+  public void setNextseqnum(int n) {
+    this.nextseqnum = n;
   }
 
 }

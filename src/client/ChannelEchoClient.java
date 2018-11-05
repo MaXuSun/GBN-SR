@@ -133,8 +133,10 @@ public class ChannelEchoClient {
     
     if(this.inGBN) {
       UDPFrame frame = new UDPFrame();
-      receiveBuffer.get(frame.getAllData());
-      System.out.println(frame.getSeq() + "," + frame.getStrData());
+      if(receiveBuffer.remaining() >1) {
+        receiveBuffer.get(frame.getAllData());
+        System.out.println(frame.getSeq() + "," + frame.getStrData());
+      }
       //ACK ack = new ACK(frame.getSeq());
       
       if (this.inGBN) {

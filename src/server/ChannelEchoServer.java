@@ -63,7 +63,7 @@ public class ChannelEchoServer {
     cliAddr = (InetSocketAddress)channel.receive(buffer);
     buffer.flip();
     String msg = Charset.forName(StaticData.CHAR_FORMAT_NAME).decode(buffer).toString();
-    System.out.println(cliAddr.getAddress()+":"+cliAddr.getPort()+">"+msg);
+    //System.out.println(cliAddr.getAddress()+":"+cliAddr.getPort()+">"+msg);
     
     return msg;
   }
@@ -112,35 +112,30 @@ public class ChannelEchoServer {
   }
 
   public void simuGBN(InetSocketAddress cliAddr) throws IOException {
-    UDPFrame[] frames = utils.geneFrame((byte) 100);
+    UDPFrame[] frames = utils.geneFrame((byte) 60);
     SendWindow window = new SendWindow(50);
     ByteBuffer tempBuffer = ByteBuffer.allocate(MAX_SIZE*2);
     byte ack = 0;
-   
-    for (byte i = 0; i < frames.length; i++) {
-      tempBuffer.clear();
-      tempBuffer = ByteBuffer.wrap(frames[i].getAllData());
-      
-      System.err.println(frames[i].getSeq()+","+frames[i].getStrData());
-      
-      channel.send(tempBuffer, cliAddr);
-      
-      System.err.println("发送成功");
-      
-      String get = receive(buffer);
-      ack = get.getBytes(StaticData.CHAR_FORMAT_NAME)[0];
-      System.out.println(ack);
-      
-      if(ack == frames[i].getSeq()) {
+    int m = 0;
+    
+    
+    while (m<60) {
+      m++;
+      for(int i = window.getNextseqnum();i<window.getWsize();i++) {
+        tempBuffer = ByteBuffer.wrap(frames[i+window.getBase()].getAllData());
+        channel.send(tempBuffer, cliAddr);
+        System.out.println((i+window.getWsize())+"：发送成功");
+      }
+      ack = receive(buffer).getBytes(StaticData.CHAR_FORMAT_NAME)[0];
+      if(ack==window.getBase()) {
         window.slipN(1);
+        System.err.println(ack+":正确接收");
+      }
+      System.err.println(ack);
+      if(m>60) {
+        break;
       }
     }
-    for(byte i = 0;i < frames.length;i++) {
-      while (true) {
-        
-      }
-    }
-
   }
 
   /**
@@ -157,5 +152,39 @@ public class ChannelEchoServer {
   public static void main(String[] args) throws IOException {
     new ChannelEchoServer().service();
     // System.out.println(Byte.MAX_VALUE);
+  }
+}
+
+class ReplyTask implements Runnable{
+  DatagramChannel channel;
+  ByteBuffer buffer;
+  InetSocketAddress cliAddr;
+  boolean end = false;
+  
+  
+  public ReplyTask(DatagramChannel channel,ByteBuffer buffer) {
+    this.channel = channel;
+    this.buffer = buffer;
+  }
+  
+  @Override
+  public void run() {
+    while (!end) {
+      buffer.clear();
+      
+      // 接收来自任意一个client的数据报
+      try {
+        cliAddr = (InetSocketAddress)channel.receive(buffer);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+      buffer.flip();
+      System.out.println(cliAddr.getAddress()+":"+cliAddr.getPort()+">"+buffer.get(0));
+    }
+    System.out.println("退出该线程");
+  }
+  
+  public void setEnd(boolean end) {
+    this.end = end;
   }
 }
