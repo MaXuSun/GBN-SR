@@ -1,5 +1,8 @@
 package utils;
 
+import com.sun.org.apache.regexp.internal.recompile;
+import com.sun.xml.internal.bind.util.Which;
+
 /**
  * 该类为发送窗口的类，用来模拟在使用GBN或者SR协议时发送方维护的窗口
  * 其中由一个byte[]数组用来记录数据，一个Wsize用来记录窗口的大小，一个base用来标注等待Ack确认的最小序号
@@ -37,7 +40,36 @@ public class SendWindow {
     }
 
     base = (base + n) % seq;
-    this.nextseqnum = this.nextseqnum-1;
+    this.nextseqnum = this.nextseqnum-n;
+  }
+  
+  /**
+   * 判断是否可以滑动
+   * @return
+   */
+  public boolean canSlip() {
+    if(this.window[0] == 0) {
+      return false;
+    }else {
+      return true;
+    }
+  }
+  
+  /**
+   * 滑动可滑动最大步数
+   * @return
+   */
+  public int slip() {
+    int i = 0;
+    for(int j =0;j < this.nextseqnum;j++) {
+      if(this.window[j] == 1) {
+        i++;
+      }else {
+        break;
+      }
+    }
+    this.slipN(i);
+    return i;
   }
 
   /**
@@ -57,7 +89,7 @@ public class SendWindow {
    *          每个数据的序号
    */
   public void setAckBySeq(int seq) {
-    seq = (seq > base) ? seq : seq + this.seq;
+    seq = (seq >= base) ? seq : seq + this.seq;
     this.window[seq - base] = 1;
   }
 
@@ -93,6 +125,10 @@ public class SendWindow {
   
   public void setNextseqnum(int n) {
     this.nextseqnum = n;
+  }
+  
+  public int getAckOfn(int n) {
+    return this.window[n];
   }
 
 }

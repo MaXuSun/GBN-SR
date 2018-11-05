@@ -20,7 +20,7 @@ public class EchoServer {
   private Utils utils = new Utils();
   private Timer timer;
   int time = 3;
-  int num = 10;
+  int num = StaticData.num;
   int wsize = 10;
   private SendWindow window;
   private UDPFrame[] frames;
@@ -28,7 +28,7 @@ public class EchoServer {
 
   public EchoServer() throws SocketException {
     socket = new DatagramSocket(port);
-    System.out.println("服务器启动");
+    System.out.println("服务器启动……");
     this.timer = new Timer(this, time);
   }
 
@@ -47,6 +47,8 @@ public class EchoServer {
         }
         if (inGBN == 1) {
           ingbn();
+        } else if (inGBN == 2) {
+          insr();
         }
       } catch (Exception e) {
         e.printStackTrace();
@@ -65,7 +67,7 @@ public class EchoServer {
     } else if (msg.equals("-testgbn")) {
       this.inGBN = 1;
     } else if (msg.equals("-testsr")) {
-
+      this.inGBN = 2;
     } else {
       packet.setData(msg.getBytes());
       socket.send(packet);
@@ -74,14 +76,12 @@ public class EchoServer {
   }
 
   public void ingbn() throws IOException {
-    UDPFrame[] frames = utils.geneFrame((byte) num);
-    SendWindow window = new SendWindow(wsize);
-    this.frames = frames;
-    this.window = window;
+    this.frames = utils.geneFrame((byte) num);
+    this.window = new SendWindow(wsize);
 
     timer.start();
     while (true) {
-      if(window.getNextseqnum()+window.getBase() != num) {
+      if (window.getNextseqnum() + window.getBase() != num) {
         sendData();
       }
       DatagramPacket packet = new DatagramPacket(new byte[1471], 1471);
@@ -90,9 +90,9 @@ public class EchoServer {
       byte b = msg.getBytes()[0];
       if (b == window.getBase()) {
         window.slipN(1);
-        System.err.println("接收数据:msg[0]:" + b);
-        System.err
-            .println("滑动后：" + window.getBase() + "," + window.getNextseqnum());
+        System.out.println("接收到的ack序号:" + b);
+        System.out.println("滑动后,base:" + window.getBase() + ",nextseqnum:"
+            + window.getNextseqnum());
         timer.setTime(0);
       } else {
         timer.setTime(time);
@@ -104,19 +104,50 @@ public class EchoServer {
     }
   }
 
+  public void insr() throws IOException {
+    this.frames = utils.geneFrame((byte) num);
+    this.window = new SendWindow(wsize);
+
+    timer.start();
+    while (true) {
+      if (window.getNextseqnum() + window.getBase() != num) {
+        sendData();
+      }
+      DatagramPacket packet = new DatagramPacket(new byte[1471], 1471);
+      socket.receive(packet);
+      String msg = new String(packet.getData());
+      byte b = msg.getBytes()[0];
+      
+      window.setAckBySeq(b);
+      if(window.canSlip()) {
+        window.slip();
+        System.out.println("滑动后,base:" + window.getBase() + ",nextseqnum:"
+            + window.getNextseqnum());
+        timer.setTime(time);
+      }
+      
+      if (b == num) {
+        timer.interrupt();
+        break;
+      }
+    }
+  }
+
   public void sendData() throws IOException {
     for (int i = window.getNextseqnum(); i < window.getWsize()
         && i < num; i++) {
-      if(i%3 == 1) {
-        window.setNextseqnum(window.getNextseqnum()+1);
-        System.out.println("首次发送,模拟第"+(i+window.getBase()+"个数据丢失:"+frames[i+window.getBase()].getStrData()));
+      if (i % 3 == 1) {
+        window.setNextseqnum(window.getNextseqnum() + 1);
+        System.out.println("首次发送,模拟第" + (i + window.getBase() + "个数据丢失:"
+            + frames[i + window.getBase()].getStrData()));
         continue;
       }
       window.setNextseqnum(window.getNextseqnum() + 1);
-      packet.setData(frames[i+window.getBase()].getAllData());
+      packet.setData(frames[i + window.getBase()].getAllData());
       socket.send(packet);
 
-      System.out.println("首次发送，第" + (i+window.getBase()) + "个数据已经发送:"+frames[i+window.getBase()].getStrData());
+      System.out.println("首次发送，第" + (i + window.getBase()) + "个数据已经发送:"
+          + frames[i + window.getBase()].getStrData());
     }
     timer.setTime(time);
   }
@@ -134,9 +165,14 @@ public class EchoServer {
 
   public void timeout() throws IOException {
     for (int i = 0; i < window.getNextseqnum(); i++) {
+      if(inGBN == 2) {
+        if(window.getAckOfn(i) == 1) {
+          continue;
+        }
+      }
       packet.setData(frames[i + window.getBase()].getAllData());
       socket.send(packet);
-      System.out.println("重发，第" + (window.getBase()+i) + "个数据已经重发");
+      System.out.println("重发，第" + (window.getBase() + i) + "个数据已经重发");
     }
     timer.setTime(time);
   }
