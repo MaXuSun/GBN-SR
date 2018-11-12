@@ -19,7 +19,7 @@ public class EchoClient {
   private DatagramSocket socket;
   private InetAddress remoteIP;
   private byte expect = 0;
-  private int num = StaticData.num;
+  private int num = StaticData.DATA_NUM;
   private ReceiveWindow window = new ReceiveWindow(10);
 
   public EchoClient() throws SocketException, UnknownHostException {

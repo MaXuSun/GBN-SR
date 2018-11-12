@@ -1,8 +1,5 @@
 package utils;
 
-import com.sun.org.apache.regexp.internal.recompile;
-import com.sun.xml.internal.bind.util.Which;
-
 /**
  * 该类为发送窗口的类，用来模拟在使用GBN或者SR协议时发送方维护的窗口
  * 其中由一个byte[]数组用来记录数据，一个Wsize用来记录窗口的大小，一个base用来标注等待Ack确认的最小序号
@@ -130,5 +127,16 @@ public class SendWindow {
   public int getAckOfn(int n) {
     return this.window[n];
   }
+  
+  public String getCo() {
+    String string = "";
+    for (int i = 0; i < Wsize; i++) {
+      string = " " + string + window[i];
+    }
+    string+=","+base+","+nextseqnum;
+    return string;
+
+  }
+
 
 }

@@ -20,7 +20,6 @@ public class Timer extends Thread{
           Thread.sleep(time*1000);
           server.timeout();
           System.out.println("时间超时，已重新发送……");
-          this.time = 0;
         } catch (InterruptedException e) {
           e.printStackTrace();
         } catch (IOException e) {

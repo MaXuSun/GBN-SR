@@ -14,14 +14,14 @@ import utils.UDPFrame;
 import utils.Utils;
 
 public class EchoServer {
+  int time = 3;
+  int num = 10;
+  int wsize = 10;
   private int port = 8000;
   private DatagramSocket socket;
   private int inGBN = 0;
   private Utils utils = new Utils();
   private Timer timer;
-  int time = 3;
-  int num = StaticData.num;
-  int wsize = 10;
   private SendWindow window;
   private UDPFrame[] frames;
   private DatagramPacket packet;
