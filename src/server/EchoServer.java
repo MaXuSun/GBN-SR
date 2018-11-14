@@ -15,7 +15,7 @@ import utils.Utils;
 
 public class EchoServer {
   int time = 3;
-  int num = 10;
+  int num = StaticData.num;
   int wsize = 10;
   private int port = 8000;
   private DatagramSocket socket;
@@ -75,26 +75,30 @@ public class EchoServer {
 
   }
 
+  
+  //进入gbn模式
   public void ingbn() throws IOException {
     this.frames = utils.geneFrame((byte) num);
     this.window = new SendWindow(wsize);
 
     timer.start();
-    while (true) {
+    while (true) {                   //如果有可发送的数据就发送
       if (window.getNextseqnum() + window.getBase() != num) {
         sendData();
       }
+      //接收客户端发来的数据
       DatagramPacket packet = new DatagramPacket(new byte[1471], 1471);
       socket.receive(packet);
       String msg = new String(packet.getData());
       byte b = msg.getBytes()[0];
-      if (b == window.getBase()) {
+      
+      if (b == window.getBase()) {      //如果是是期待的ack就滑动窗口
         window.slipN(1);
         System.out.println("接收到的ack序号:" + b);
         System.out.println("滑动后,base:" + window.getBase() + ",nextseqnum:"
             + window.getNextseqnum());
         timer.setTime(0);
-      } else {
+      } else {                         //否则重新计时
         timer.setTime(time);
       }
       if (b == num) {
@@ -104,22 +108,24 @@ public class EchoServer {
     }
   }
 
+  //进入sr模式
   public void insr() throws IOException {
     this.frames = utils.geneFrame((byte) num);
     this.window = new SendWindow(wsize);
 
     timer.start();
-    while (true) {
+    while (true) {        //如果有可以发送的数据就发送
       if (window.getNextseqnum() + window.getBase() != num) {
         sendData();
       }
+      //接收客户端发来的数据
       DatagramPacket packet = new DatagramPacket(new byte[1471], 1471);
       socket.receive(packet);
       String msg = new String(packet.getData());
       byte b = msg.getBytes()[0];
       
       window.setAckBySeq(b);
-      if(window.canSlip()) {
+      if(window.canSlip()) {      //如果窗口可以滑动就滑动
         window.slip();
         System.out.println("滑动后,base:" + window.getBase() + ",nextseqnum:"
             + window.getNextseqnum());
@@ -133,16 +139,18 @@ public class EchoServer {
     }
   }
 
+  //发送数据方法
   public void sendData() throws IOException {
     for (int i = window.getNextseqnum(); i < window.getWsize()
-        && i < num; i++) {
-      if (i % 3 == 1) {
+        && i +window.getBase()< num; i++) {
+      
+      if (i % 3 == 1) {                                 //模拟数据丢失
         window.setNextseqnum(window.getNextseqnum() + 1);
         System.out.println("首次发送,模拟第" + (i + window.getBase() + "个数据丢失:"
             + frames[i + window.getBase()].getStrData()));
         continue;
       }
-      window.setNextseqnum(window.getNextseqnum() + 1);
+      window.setNextseqnum(window.getNextseqnum() + 1);  //更新nextseqnum
       packet.setData(frames[i + window.getBase()].getAllData());
       socket.send(packet);
 
@@ -163,9 +171,10 @@ public class EchoServer {
     return format.format(System.currentTimeMillis());
   }
 
+  //超时时调用的方法
   public void timeout() throws IOException {
     for (int i = 0; i < window.getNextseqnum(); i++) {
-      if(inGBN == 2) {
+      if(inGBN == 2) {                        //如果是sr就不发送已经收到ack的数据
         if(window.getAckOfn(i) == 1) {
           continue;
         }

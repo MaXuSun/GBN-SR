@@ -86,7 +86,14 @@ public class SendWindow {
    *          每个数据的序号
    */
   public void setAckBySeq(int seq) {
-    seq = (seq >= base) ? seq : seq + this.seq;
+    if (base + Wsize <= this.seq) {
+      if (seq < base||seq>=base+Wsize)
+        return;
+    }else {
+      if(seq<base && seq > (base+Wsize)%this.seq) {
+        return;
+      }
+    }
     this.window[seq - base] = 1;
   }
 

@@ -19,7 +19,7 @@ public class EchoClient {
   private DatagramSocket socket;
   private InetAddress remoteIP;
   private byte expect = 0;
-  private int num = StaticData.DATA_NUM;
+  private int num = StaticData.num;
   private ReceiveWindow window = new ReceiveWindow(10);
 
   public EchoClient() throws SocketException, UnknownHostException {
@@ -76,12 +76,12 @@ public class EchoClient {
       socket.receive(inputPacket);
       UDPFrame frame = new UDPFrame();
       frame.setAllData(inputPacket.getData());
-      if (expect == frame.getSeq()) {
+      if (expect == frame.getSeq()) {                 //如果是期待的数据就向上交付并发送确认ack
         sendAck(frame.getSeq());
         System.out.println("收到分组:" + frame.getSeq() + "内容为:"
             + frame.getStrData() + ",该分组为期待的分组");
         expect++;
-      } else {
+      } else {                                      //否则发送上一个接收的ack序号
         System.err.println("收到分组:" + frame.getSeq() + "内容为:"
             + frame.getStrData() + ",该分组不是期待分组:" + expect);
         sendAck(expect - 1);
@@ -92,8 +92,8 @@ public class EchoClient {
     }
   }
 
-  int sum = 0;
   public void testsr() throws IOException {
+    int sum = 0;
     while (true) {
       DatagramPacket inputPacket = new DatagramPacket(new byte[1471], 1471);
 
@@ -101,8 +101,8 @@ public class EchoClient {
       UDPFrame frame = new UDPFrame();
       frame.setAllData(inputPacket.getData());
       this.window.setAck(frame.getSeq());
-      sendAck(frame.getSeq());
-      if(this.window.canRcv()) {
+      sendAck(frame.getSeq());              //得到接收的数据的序号
+      if(this.window.canRcv()) {            //如果可以向上交付就交付
         int m = this.window.rcv();
         sum+=m;
         System.out.println("向上交付数据,序号为"+(this.window.getBase()-m)+"~"+(this.window.getBase()-1));
